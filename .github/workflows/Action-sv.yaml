@@ -5,11 +5,30 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+          action:
+            description: 'Select Deployment Action'
+            required: true
+            type: choice
+            default: 'deploy-and-test'
+            options:
+              - deploy-and-test
+              - undeploy-only
 
 jobs:
   my_sv_job:
     runs-on: self-hosted 
     
     steps:
+
+      - name: ⬇️ Checkout Code
+        uses: actions/checkout@v4
+
       - name: 👋 Test Runner
         run: echo "Job is running on the runner named 'runner-sv'."
+
+      - name: 🏷️ Show Runner Labels and Inputs
+        run: |
+          echo "Runner Label Test Complete."
+          echo "Current Runner Labels: ${{ runner.labels }}"
+          echo "User selected action: ${{ github.event.inputs.action }}"
