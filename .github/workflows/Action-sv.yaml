@@ -12,8 +12,8 @@ on:
             type: choice
             default: 'deploy-and-test'
             options:
-              - deploy-and-test
-              - undeploy-only
+              - Start-VirtualService
+              - Stop-VirtualService
 
           vs_service_name: 
             description: 'Virtual Service Name or ID'
