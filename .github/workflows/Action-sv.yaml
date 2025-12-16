@@ -8,7 +8,7 @@ on:
 
 jobs:
   my_sv_job:
-    runs-on: runner-sv 
+    runs-on: self-hosted 
     
     steps:
       - name: 👋 Test Runner
