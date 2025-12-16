@@ -15,6 +15,12 @@ on:
               - deploy-and-test
               - undeploy-only
 
+          vs_service_name: 
+            description: 'Virtual Service Name or ID'
+            required: false
+            type: string
+            default: 'MyTestService'
+
 jobs:
   my_sv_job:
     runs-on: self-hosted 
@@ -32,3 +38,4 @@ jobs:
           echo "Runner Label Test Complete."
           echo "Current Runner Labels: ${{ runner.labels }}"
           echo "User selected action: ${{ github.event.inputs.action }}"
+          echo "Target Service Name/ID: ${{ github.event.inputs.vs_service_name }}"
