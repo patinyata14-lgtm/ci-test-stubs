@@ -6,36 +6,68 @@ on:
       - main
   workflow_dispatch:
     inputs:
-          action:
-            description: 'Select Deployment Action'
-            required: true
-            type: choice
-            default: 'deploy-and-test'
-            options:
-              - Start-VirtualService
-              - Stop-VirtualService
-
-          vs_service_name: 
-            description: 'Virtual Service Name or ID'
-            required: false
-            type: string
-            default: 'MyTestService'
+      action:
+        description: 'Select Deployment Action'
+        required: true
+        type: choice
+        default: 'Start-VirtualService'
+        options:
+          - Start-VirtualService
+          - Stop-VirtualService
+      
+      vs_service_id: 
+        description: 'Target Virtual Service ID'
+        required: true
+        type: string
+        default: 'fdedfe36-872a-431e-aaad-751cc7e201e5'
 
 jobs:
   my_sv_job:
     runs-on: self-hosted 
     
     steps:
-
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
 
-      - name: 👋 Test Runner
-        run: echo "Job is running on the runner named 'runner-sv'."
-
-      - name: 🏷️ Show Runner Labels and Inputs
+      - name: 🏷️ Execution Info
         run: |
-          echo "Runner Label Test Complete."
-          echo "Current Runner Labels: ${{ runner.labels }}"
-          echo "User selected action: ${{ github.event.inputs.action }}"
-          echo "Target Service Name/ID: ${{ github.event.inputs.vs_service_name }}"
+          echo "Current Action: ${{ github.event.inputs.action }}"
+          echo "Target ID: ${{ github.event.inputs.vs_service_id }}"
+
+      - name: 🔄 Switch Service Mode
+        run: |
+          if [[ "${{ github.event.inputs.action }}" == "Start-VirtualService" ]]; then
+            TARGET_MODE="PassThrough"
+          else
+            TARGET_MODE="Offline"
+          fi
+
+          echo "🚀 Sending PUT request to set mode to: $TARGET_MODE"
+          
+          # ยิงคำสั่ง PUT ตามโครงสร้างที่คุณให้มา
+          curl -k -X PUT "https://10.0.10.133:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"runtimeMode\": \"$TARGET_MODE\",
+            \"messageLogging\": {
+              \"enabled\": true,
+              \"simulationReportEnabled\": true
+            }
+          }"
+
+      - name: 🔍 Check Status (Polling)
+        run: |
+          echo "⏳ Waiting for service to reach Ready state..."
+          for i in {1..10}; do
+            STATUS=$(curl -k -s "https://10.0.10.133:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" | jq -r '.deploymentState')
+            echo "Current Status: $STATUS"
+            
+            if [[ "$STATUS" == "Ready" ]]; then
+              echo "✅ Service is Ready and $TARGET_MODE!"
+              exit 0
+            fi
+            sleep 3
+          done
+          
+          echo "❌ Timeout: Service did not reach Ready state."
+          exit 1
