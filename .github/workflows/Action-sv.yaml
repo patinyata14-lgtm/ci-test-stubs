@@ -47,7 +47,7 @@ jobs:
           echo "dm_id=$dataModelId" >> $env:GITHUB_OUTPUT
           echo "pm_id=$perfModelId" >> $env:GITHUB_OUTPUT
 
-      - name: 🔄 Execute Switch Mode
+      - name: 🔄 Execute Switch Mode - ${{ github.event.inputs.action }}
         shell: powershell
         run: |
           $action = "${{ github.event.inputs.action }}"
