@@ -79,10 +79,38 @@ jobs:
           [System.IO.File]::WriteAllText($bodyFile, $jsonBody)
 
           $putUrl = "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
-          $result = curl.exe -k -s -X PUT $putUrl `
-                    -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" `
-                    -H "Content-Type: application/json" `
-                    -d "@$bodyFile"
+          $getUrl = "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
+          $headers = @("-H", "Authorization: Basic ${{ secrets.SV_TOKEN }}", "-H", "Content-Type: application/json")
+          $maxRetries = 3
+          $delaySeconds = 10
 
-          Write-Output "API Response: $result"
+          for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+              Write-Output "--- Attempt $attempt of $maxRetries ---"
+
+              $result = curl.exe -k -s -X PUT $putUrl @headers -d "@$bodyFile"
+              Write-Output "PUT Response: $result"
+
+              Write-Output "Waiting $delaySeconds seconds for state to settle..."
+              Start-Sleep -Seconds $delaySeconds
+
+              $verify = curl.exe -k -s -X GET $getUrl -H "accept: application/json" -H "Authorization: Basic ${{ secrets.SV_TOKEN }}"
+              $verifyJson = $verify | ConvertFrom-Json
+              $actualState = $verifyJson.deploymentState
+
+              Write-Output "Expected State: $expectedState | Actual State: $actualState"
+
+              if ($actualState -eq $expectedState) {
+                  Write-Output "✅ State verified successfully on attempt $attempt"
+                  break
+              }
+
+              if ($attempt -eq $maxRetries) {
+                  Remove-Item $bodyFile
+                  Write-Error "❌ State did not change to '$expectedState' after $maxRetries attempts (still '$actualState')"
+                  exit 1
+              }
+
+              Write-Output "⚠️ State mismatch, retrying..."
+          }
+
           Remove-Item $bodyFile
