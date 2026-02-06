@@ -11,74 +11,77 @@ on:
         options:
           - Start-VirtualService
           - Stop-VirtualService
-      
+          - Record-VirtualService
+          - Simulate-VirtualService
       vs_service_id:
         description: 'Target Virtual Service ID'
         required: true
         type: string
-        default: 'Service ID'
+        default: 'a380b409-65da-4249-b726-40074eb8235d'
 
 jobs:
   my_sv_job:
-    runs-on: self-hosted 
-    
+    runs-on: self-hosted
+
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
 
-
-      - name: 🏷️ Execution Info
+      - name: 🔍 Fetch Metadata (Get Model IDs)
+        id: fetch_meta
         shell: powershell
         run: |
-          Write-Output "Current Action: ${{ github.event.inputs.action }}"
-          Write-Output "Target ID: ${{ github.event.inputs.vs_service_id }}"
-
-      - name: Check Service Status
-        id: check_status
-        shell: powershell
-        run: |
-          $response = curl.exe -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Accept: application/json" "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
+          $url = "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
+          $response = curl.exe -k -s -X GET $url -H "accept: application/json" -H "Authorization: Basic ${{ secrets.SV_TOKEN }}"
           $json = $response | ConvertFrom-Json
-          $currentState = $json.deploymentState
-          Write-Output "Current Service Status: $currentState"
-          echo "current_state=$currentState" >> $env:GITHUB_OUTPUT
 
-      - name: 🔄 Switch Service Mode - ${{ github.event.inputs.action }}
+          $currentState = $json.deploymentState
+          $dataModelId = $json.dataModels[0].id
+          $perfModelId = $json.performanceModels[0].id
+
+          Write-Output "Service Name: $($json.name)"
+          Write-Output "Current State: $currentState"
+          Write-Output "Data Model Found: $dataModelId"
+
+          echo "current_state=$currentState" >> $env:GITHUB_OUTPUT
+          echo "dm_id=$dataModelId" >> $env:GITHUB_OUTPUT
+          echo "pm_id=$perfModelId" >> $env:GITHUB_OUTPUT
+
+      - name: 🔄 Execute Switch Mode
         shell: powershell
         run: |
           $action = "${{ github.event.inputs.action }}"
-          $currentState = "${{ steps.check_status.outputs.current_state }}"
+          $currentState = "${{ steps.fetch_meta.outputs.current_state }}"
+          $dmId = "${{ steps.fetch_meta.outputs.dm_id }}"
+          $pmId = "${{ steps.fetch_meta.outputs.pm_id }}"
 
-          if ($action -eq "Start-VirtualService") {
-            $targetMode = "PassThrough"
-            $expectedState = "Ready"
-          } else {
-            $targetMode = "Offline"
-            $expectedState = "Down"
+          switch ($action) {
+            "Start-VirtualService"    { $targetMode = "PassThrough"; $expectedState = "Ready" }
+            "Stop-VirtualService"     { $targetMode = "Offline";     $expectedState = "Down" }
+            "Record-VirtualService"   { $targetMode = "Learning";    $expectedState = "Ready" }
+            "Simulate-VirtualService" { $targetMode = "Simulating";  $expectedState = "Ready" }
           }
 
-          Write-Output "Action: $action"
-          Write-Output "Current State: $currentState"
           Write-Output "Target Mode: $targetMode"
 
-          if ($currentState -eq $expectedState) {
-            Write-Output "✅ Service is already in $expectedState state. No change needed."
-          } else {
-            Write-Output "🚀 Switching service to $targetMode..."
-            $bodyFile = "$env:TEMP\sv_body.json"
-            Set-Content -Path $bodyFile -Value "{`"runtimeMode`": `"$targetMode`", `"messageLogging`": {`"enabled`": true, `"simulationReportEnabled`": true}}" -NoNewline
-            Write-Output "Request Body: $(Get-Content $bodyFile)"
-
-            $result = curl.exe -k -s -X PUT "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Content-Type: application/json" -d "@$bodyFile"
-            Write-Output "Result: $result"
-            Remove-Item $bodyFile -ErrorAction SilentlyContinue
+          $payload = @{
+              runtimeMode = $targetMode
+              messageLogging = @{ enabled = $true; simulationReportEnabled = $true }
           }
 
-      - name: ✅ Final Service Status
-        shell: powershell
-        run: |
-          $finalResponse = curl.exe -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Accept: application/json" "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
-          $finalJson = $finalResponse | ConvertFrom-Json
-          $finalState = $finalJson.deploymentState
-          Write-Output "Final Service Status: $finalState"
-          echo "final_state=$finalState" >> $env:GITHUB_OUTPUT
+          if ($targetMode -eq "Simulating" -or $targetMode -eq "Learning") {
+              $payload.dataModelId = $dmId
+              $payload.performanceModelId = $pmId
+          }
+
+          $bodyFile = "$env:TEMP\sv_payload.json"
+          $payload | ConvertTo-Json | Set-Content -Path $bodyFile -NoNewline -Encoding utf8
+
+          $putUrl = "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
+          $result = curl.exe -k -s -X PUT $putUrl `
+                    -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" `
+                    -H "Content-Type: application/json" `
+                    -d "@$bodyFile"
+
+          Write-Output "API Response: $result"
+          Remove-Item $bodyFile
