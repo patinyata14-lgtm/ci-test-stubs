@@ -37,11 +37,48 @@ jobs:
           Write-Output "Target ID: ${{ github.event.inputs.vs_service_id }}"
 
       - name: Check Service Status
+        id: check_status
         shell: powershell
         run: |
           $response = curl.exe -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Accept: application/json" "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
           $json = $response | ConvertFrom-Json
-          Write-Output "Service Status Response: $($json.deploymentState)"
+          $currentState = $json.deploymentState
+          Write-Output "Current Service Status: $currentState"
+          echo "current_state=$currentState" >> $env:GITHUB_OUTPUT
+
+      - name: 🔄 Switch Service Mode
+        shell: powershell
+        run: |
+          $action = "${{ github.event.inputs.action }}"
+          $currentState = "${{ steps.check_status.outputs.current_state }}"
+
+          if ($action -eq "Start-VirtualService") {
+            $targetMode = "PassThrough"
+            $expectedState = "Ready"
+          } else {
+            $targetMode = "Offline"
+            $expectedState = "Down"
+          }
+
+          Write-Output "Action: $action"
+          Write-Output "Current State: $currentState"
+          Write-Output "Target Mode: $targetMode"
+
+          if ($currentState -eq $expectedState) {
+            Write-Output "✅ Service is already in $expectedState state. No change needed."
+          } else {
+            Write-Output "🚀 Switching service to $targetMode..."
+            $body = @{
+              runtimeMode = $targetMode
+              messageLogging = @{
+                enabled = $true
+                simulationReportEnabled = $true
+              }
+            } | ConvertTo-Json
+
+            $result = curl.exe -k -s -X PUT "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Content-Type: application/json" -d $body
+            Write-Output "Result: $result"
+          }
 
       # - name: Check Service Status
       #   run: |
