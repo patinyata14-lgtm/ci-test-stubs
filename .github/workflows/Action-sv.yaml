@@ -34,19 +34,20 @@ jobs:
 
 
       - name: 🏷️ Execution Info
-        shell: pwsh
+        shell: powershell
         run: |
           Write-Output "Current Action: ${{ github.event.inputs.action }}"
           Write-Output "Target ID: ${{ github.event.inputs.vs_service_id }}"
 
       - name: Check Service Status
-        shell: pwsh
+        shell: powershell
         run: |
+          [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}
           $headers = @{
             "Authorization" = "Basic ${{ secrets.SV_TOKEN }}"
             "Accept" = "application/json"
           }
-          $response = Invoke-RestMethod -Uri "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" -Headers $headers -SkipCertificateCheck
+          $response = Invoke-RestMethod -Uri "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" -Headers $headers
           Write-Output "Service Status Response: $($response.deploymentState)"
 
       # - name: Check Service Status
