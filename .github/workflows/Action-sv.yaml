@@ -1,9 +1,6 @@
 name: Test Self-Hosted Runner 'runner-sv'
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       action:
