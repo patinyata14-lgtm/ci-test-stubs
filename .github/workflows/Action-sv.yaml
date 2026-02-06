@@ -75,7 +75,8 @@ jobs:
           }
 
           $bodyFile = "$env:TEMP\sv_payload.json"
-          $payload | ConvertTo-Json | Set-Content -Path $bodyFile -NoNewline -Encoding utf8
+          $jsonBody = $payload | ConvertTo-Json -Depth 3
+          [System.IO.File]::WriteAllText($bodyFile, $jsonBody)
 
           $putUrl = "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
           $result = curl.exe -k -s -X PUT $putUrl `
