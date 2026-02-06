@@ -43,7 +43,7 @@ jobs:
           Write-Output "Current Service Status: $currentState"
           echo "current_state=$currentState" >> $env:GITHUB_OUTPUT
 
-      - name: 🔄 Switch Service Mode
+      - name: 🔄 Switch Service Mode - ${{ github.event.inputs.action }}
         shell: powershell
         run: |
           $action = "${{ github.event.inputs.action }}"
