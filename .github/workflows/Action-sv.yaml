@@ -35,12 +35,12 @@ jobs:
           echo "Current Action: ${{ github.event.inputs.action }}"
           echo "Target ID: ${{ github.event.inputs.vs_service_id }}"
 
-      # - name: Check Service Status
-      #   run: |
-      #     RESPONSE=$(curl -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" \
-      #     -H "accept: application/json" \
-      #     "https://10.0.10.133:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" | jq {deploymentState})
-      #     echo "Service Status Response: $RESPONSE"
+      - name: Check Service Status
+        run: |
+          RESPONSE=$(curl -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" \
+          -H "accept: application/json" \
+          "https://10.0.10.133:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" | jq {deploymentState})
+          echo "Service Status Response: $RESPONSE"
 
       # - name: 🔄 Switch Service Mode
       #   run: |
