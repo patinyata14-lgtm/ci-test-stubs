@@ -11,7 +11,7 @@ on:
         options:
           - Start-VirtualService
           - Stop-VirtualService
-          - Record-VirtualService
+          # - Record-VirtualService
           - Simulate-VirtualService
       vs_service_id:
         description: 'Target Virtual Service ID'
