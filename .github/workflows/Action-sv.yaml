@@ -15,11 +15,14 @@ on:
           - Start-VirtualService
           - Stop-VirtualService
       
-      vs_service_id: 
+      vs_service_id:
         description: 'Target Virtual Service ID'
         required: true
-        type: string
-        default: 'fdedfe36-872a-431e-aaad-751cc7e201e5'
+        type: choice
+        default: 'a380b409-65da-4249-b726-40074eb8235d'
+        options:
+          - a380b409-65da-4249-b726-40074eb8235d  # REST Service 3
+          - 88739488-492d-45a8-9889-715dde894da7  # REST Service (Switch Service)
 
 jobs:
   my_sv_job:
@@ -39,8 +42,15 @@ jobs:
         run: |
           RESPONSE=$(curl -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" \
           -H "accept: application/json" \
-          "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" | jq {deploymentState})
+          "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" | jq '.deploymentState')
           echo "Service Status Response: $RESPONSE"
+
+      # - name: Check Service Status
+      #   run: |
+      #     RESPONSE=$(curl -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" \
+      #     -H "accept: application/json" \
+      #     "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" | jq {deploymentState})
+      #     echo "Service Status Response: $RESPONSE"
 
       # - name: 🔄 Switch Service Mode
       #   run: |
