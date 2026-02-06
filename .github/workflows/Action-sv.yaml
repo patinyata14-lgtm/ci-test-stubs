@@ -34,16 +34,20 @@ jobs:
 
 
       - name: 🏷️ Execution Info
+        shell: pwsh
         run: |
-          echo "Current Action: ${{ github.event.inputs.action }}"
-          echo "Target ID: ${{ github.event.inputs.vs_service_id }}"
+          Write-Output "Current Action: ${{ github.event.inputs.action }}"
+          Write-Output "Target ID: ${{ github.event.inputs.vs_service_id }}"
 
       - name: Check Service Status
+        shell: pwsh
         run: |
-          RESPONSE=$(curl -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" \
-          -H "accept: application/json" \
-          "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" | jq '.deploymentState')
-          echo "Service Status Response: $RESPONSE"
+          $headers = @{
+            "Authorization" = "Basic ${{ secrets.SV_TOKEN }}"
+            "Accept" = "application/json"
+          }
+          $response = Invoke-RestMethod -Uri "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" -Headers $headers -SkipCertificateCheck
+          Write-Output "Service Status Response: $($response.deploymentState)"
 
       # - name: Check Service Status
       #   run: |
