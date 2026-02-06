@@ -30,10 +30,10 @@ jobs:
         uses: actions/checkout@v4
 
 
-      # - name: 🏷️ Execution Info
-      #   run: |
-      #     echo "Current Action: ${{ github.event.inputs.action }}"
-      #     echo "Target ID: ${{ github.event.inputs.vs_service_id }}"
+      - name: 🏷️ Execution Info
+        run: |
+          echo "Current Action: ${{ github.event.inputs.action }}"
+          echo "Target ID: ${{ github.event.inputs.vs_service_id }}"
 
       # - name: Check Service Status
       #   run: |
