@@ -68,11 +68,13 @@ jobs:
             Write-Output "✅ Service is already in $expectedState state. No change needed."
           } else {
             Write-Output "🚀 Switching service to $targetMode..."
-            $body = '{"runtimeMode": "' + $targetMode + '", "messageLogging": {"enabled": true, "simulationReportEnabled": true}}'
-            Write-Output "Request Body: $body"
+            $bodyFile = "$env:TEMP\sv_body.json"
+            Set-Content -Path $bodyFile -Value "{`"runtimeMode`": `"$targetMode`", `"messageLogging`": {`"enabled`": true, `"simulationReportEnabled`": true}}" -NoNewline
+            Write-Output "Request Body: $(Get-Content $bodyFile)"
 
-            $result = curl.exe -k -s -X PUT "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Content-Type: application/json" -d $body
+            $result = curl.exe -k -s -X PUT "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Content-Type: application/json" -d "@$bodyFile"
             Write-Output "Result: $result"
+            Remove-Item $bodyFile -ErrorAction SilentlyContinue
           }
 
       # - name: Check Service Status
