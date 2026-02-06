@@ -68,13 +68,8 @@ jobs:
             Write-Output "✅ Service is already in $expectedState state. No change needed."
           } else {
             Write-Output "🚀 Switching service to $targetMode..."
-            $body = @{
-              runtimeMode = $targetMode
-              messageLogging = @{
-                enabled = $true
-                simulationReportEnabled = $true
-              }
-            } | ConvertTo-Json
+            $body = '{"runtimeMode": "' + $targetMode + '", "messageLogging": {"enabled": true, "simulationReportEnabled": true}}'
+            Write-Output "Request Body: $body"
 
             $result = curl.exe -k -s -X PUT "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Content-Type: application/json" -d $body
             Write-Output "Result: $result"
