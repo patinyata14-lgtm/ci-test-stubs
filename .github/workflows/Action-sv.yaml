@@ -16,7 +16,7 @@ on:
         description: 'Target Virtual Service ID'
         required: true
         type: string
-        default: 'Target Virtual Service ID'
+        default: 'Service ID'
 
 jobs:
   my_sv_job:
