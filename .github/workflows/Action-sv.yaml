@@ -74,53 +74,11 @@ jobs:
             Remove-Item $bodyFile -ErrorAction SilentlyContinue
           }
 
-      # - name: Check Service Status
-      #   run: |
-      #     RESPONSE=$(curl -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" \
-      #     -H "accept: application/json" \
-      #     "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" | jq {deploymentState})
-      #     echo "Service Status Response: $RESPONSE"
-
-      # - name: 🔄 Switch Service Mode
-      #   run: |
-      #     if [[ "${{ github.event.inputs.action }}" == "Start-VirtualService" ]]; then
-      #       TARGET_MODE="PassThrough"
-      #       EXPECTED_STATE="Ready"
-      #     else
-      #       TARGET_MODE="Offline"
-      #       EXPECTED_STATE="Down"
-      #     fi
-
-      # echo "🚀 Sending PUT request to set mode to: $TARGET_MODE"
-      # curl -k -X PUT "https://10.0.10.133:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}" \
-      # -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" \
-      # -H "Content-Type: application/json" \
-      # -d "{
-      #   \"runtimeMode\": \"$TARGET_MODE\",
-      #   \"messageLogging\": {
-      #     \"enabled\": true,
-      #     \"simulationReportEnabled\": true
-      #   }
-      # }"
-
-      # - name: 🔍 Check Status (Polling)
-      #   run: |
-      #     echo "⏳ Waiting for service to reach Ready state..."
-      #     for i in {1..10}; do
-      #       STATUS=$(curl -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" \
-      #       -H "accept: application/json" \
-      #       "https://10.0.10.133:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}")
-            
-      #       STATUS=$(echo "$RAW_JSON" | jq -r '.deploymentState')
-      #       echo "Attempt $i: Current Status is [$STATUS]"
-
-      #       if [[ "$STATUS" == "$EXPECTED_STATE" ]]; then
-      #         echo "✅ Service is $EXPECTED_STATE and $TARGET_MODE!"
-      #         exit 0
-      #       fi
-      #       sleep 5
-      #     done
-          
-      #     echo "❌ Timeout: Service did not reach $EXPECTED_STATE state."
-      #     echo "Raw Response for Debug: $RAW_JSON"
-      #     exit 1
+      - name: ✅ Final Service Status
+        shell: powershell
+        run: |
+          $finalResponse = curl.exe -k -s -H "Authorization: Basic ${{ secrets.SV_TOKEN }}" -H "Accept: application/json" "https://localhost:6085/api/v2/services/${{ github.event.inputs.vs_service_id }}"
+          $finalJson = $finalResponse | ConvertFrom-Json
+          $finalState = $finalJson.deploymentState
+          Write-Output "Final Service Status: $finalState"
+          echo "final_state=$finalState" >> $env:GITHUB_OUTPUT
